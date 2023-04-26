@@ -6,8 +6,8 @@ class piece {
 		int* x_pos;
 		int* y_pos;
 
-		piece();
-		~piece();
+		//piece();
+		//~piece();
 
 		int draw_piece();
 };

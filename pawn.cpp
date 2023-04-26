@@ -13,5 +13,14 @@ pawn::~pawn() {
 }
 
 void pawn::draw_piece() {
-	mvaddch(*pawn::y_pos, *pawn::x_pos, 'h');	
+	mvaddch(20, 200, '-');
+	mvaddch(20, 201, '-');
+	mvaddch(20, 202, '-');
+
+	mvaddch(19, 201, '|');
+
+	mvaddch(18, 201, '*');
+
+//	mvaddch(*pawn::y_pos, *pawn::x_pos, 'h');	
+	refresh();
 }

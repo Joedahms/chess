@@ -7,6 +7,7 @@
 #include "setup.h"
 #include "piece.h"
 #include "pawn.h"
+#include "utility.h"
 
 int running = 1;
 struct aiocb cntrl_blk;
@@ -65,7 +66,8 @@ void on_input(int phony) {
 					running = 0;
 					break;
 				case 'p':
-					test_pawn.draw_piece();
+					//test_pawn.draw_piece();
+					see_color_content(20, 200, 1);
 					break;
 				default:
 					break;
