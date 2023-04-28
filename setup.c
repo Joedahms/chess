@@ -12,6 +12,9 @@ void setup() {
 	noecho();
 	clear();
 
+	
+
 	draw_board(0, 0, 5, 8);
 	refresh();
 }
+

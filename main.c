@@ -10,19 +10,26 @@
 
 #include "setup.h"
 #include "utility.h"
+#include "tile.h"
 
 #include "pawn.h"
 
 int running = 1;
 struct aiocb cntrl_blk;
 
+struct tile board[8][8]; // array of tiles
+
 void shutdown();
 void setup_cntrl_blk();
 void on_input(int);
+void init_tiles();
 
 int main(void) {
 	setup();
-	
+
+
+	init_tiles();
+
 	setup_cntrl_blk();
 	signal(SIGIO, on_input); 
 	aio_read(&cntrl_blk);
@@ -31,6 +38,7 @@ int main(void) {
 		pause();	
 		refresh();
 	}
+
 
 	shutdown();
 
@@ -68,8 +76,8 @@ void on_input(int phony) {
 					running = 0;
 					break;
 				case 'p':
-					//test_pawn.draw_piece();
-					see_color_content(20, 200, 1);
+					draw_pawn(0,0);
+					//see_color_content(20, 200, 1);
 					break;
 				default:
 					break;
@@ -78,4 +86,32 @@ void on_input(int phony) {
 	aio_read(&cntrl_blk);
 	}
 
+}
+
+void init_tiles() {
+	int i;
+	int j;
+
+	int curr_y_pos = 0;
+	int curr_x_pos = 0;
+
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			board[i][j].y_pos = curr_y_pos;
+			board[i][j].x_pos = curr_x_pos;
+			curr_x_pos = curr_x_pos + 11;
+		}
+		curr_x_pos = 0;
+		curr_y_pos = curr_y_pos + 6;
+	}
+
+	// prints tile coords
+	for (i = 0; i < 8; i++) {
+		for (j = 0; j < 8; j++) {
+			mvprintw(board[i][j].y_pos, board[i][j].x_pos, "%d", board[i][j].y_pos);
+			mvprintw(board[i][j].y_pos + 1, board[i][j].x_pos, "%d", board[i][j].x_pos);
+		}
+	}
+
+	
 }
