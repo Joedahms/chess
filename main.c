@@ -1,3 +1,7 @@
+// board matrix
+// each tile can have a pointer a piece struct
+// matrix of piece pointers 
+
 #include <curses.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -5,14 +9,12 @@
 #include <signal.h>
 
 #include "setup.h"
-#include "piece.h"
-#include "pawn.h"
 #include "utility.h"
+
+#include "pawn.h"
 
 int running = 1;
 struct aiocb cntrl_blk;
-
-pawn test_pawn;
 
 void shutdown();
 void setup_cntrl_blk();
