@@ -11,7 +11,7 @@
 // 5. half move clock. reset upon capture or pawn move
 // 6. full move clock. starts at one. increases when a player moves
 //
-// Bitboards. 64 bit binary number. each bit is a position on the board.
+// Bitmaps. 64 bit binary number. each bit is a position on the board.
 // lsb is bottom left. msb is top right. increases from left to right, top 
 // to bottom
 //
@@ -30,6 +30,9 @@
 // black king
 // white king
 
+// starting off assuming that the side of the board facing the player is the white side
+// will need to implement logic to flip the board for a two player game
+
 #include <curses.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -41,16 +44,140 @@
 #include "utility.h"
 #include "tile.h"
 #include "draw_board.h"
-
-#include "pawn.h"
+#include "bitmap.h"
+#include "pieces.h"
 
 int running = 1;
 struct aiocb cntrl_blk;
 
 struct tile board[8][8]; // array of tiles
 
-int num = 0b101;
-int num2 = 0b110;
+int all_white_bitmap[64] = {0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    1,1,1,1,1,1,1,1,
+			    1,1,1,1,1,1,1,1};
+
+int all_black_bitmap[64] = {1,1,1,1,1,1,1,1,
+  			    1,1,1,1,1,1,1,1,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0,
+			    0,0,0,0,0,0,0,0};
+
+int white_pawns_bitmap[64] = {0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      1,1,1,1,1,1,1,1,
+			      0,0,0,0,0,0,0,0};
+
+int black_pawns_bitmap[64] = {0,0,0,0,0,0,0,0,
+			      1,1,1,1,1,1,1,1,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0}; 
+
+int white_rooks_bitmap[64] = {0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      1,0,0,0,0,0,0,1};
+
+int black_rooks_bitmap[64] = {1,0,0,0,0,0,0,1,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0};
+
+int white_knights_bitmap[64] = {0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			        0,1,0,0,0,0,1,0};
+
+int black_knights_bitmap[64] = {0,1,0,0,0,0,1,0,
+			        0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			        0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,
+				0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0};
+
+int white_bishops_bitmap[64] = {0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,1,0,0,1,0,0};
+
+int black_bishops_bitmap[64] = {0,0,1,0,0,1,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0,
+			      	0,0,0,0,0,0,0,0};
+
+int white_queen_bitmap[64] = {0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,1,0,0,0,0};
+
+int black_queen_bitmap[64] = {0,0,0,0,1,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0,
+			      0,0,0,0,0,0,0,0};
+
+int white_king_bitmap[64] = {0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,1,0,0,0};
+
+int black_king_bitmap[64] = {0,0,0,1,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0,
+			     0,0,0,0,0,0,0,0};
+
 int bin_num[64] = {1,0,0,0,0,0,0,0,
 		   0,0,0,0,0,0,0,0,
 		   0,0,0,0,0,0,0,0,
@@ -60,20 +187,32 @@ int bin_num[64] = {1,0,0,0,0,0,0,0,
 		   0,0,0,0,0,0,0,0,
 		   0,0,0,0,0,0,0,1};
 
+int *all_piece_bitmaps[12] = {white_pawns_bitmap,	
+			     black_pawns_bitmap,
+			     white_rooks_bitmap,
+			     black_rooks_bitmap,
+			     white_knights_bitmap,
+			     black_knights_bitmap,
+			     white_bishops_bitmap,
+			     black_bishops_bitmap,
+			     white_queen_bitmap,
+			     black_queen_bitmap,
+			     white_king_bitmap,
+			     black_king_bitmap};
+
+int y_coords[64];
+int x_coords[64];
 
 void shutdown();
 void setup_cntrl_blk();
 void on_input(int);
 void init_tiles();
-void int_to_bin(int);
-void int_to_bin64(unsigned long);
-void draw_bitmap(int, int, int *);
+void draw_pawns(int *, int *, int *);
+void draw_all_pieces(int *y_coords, int *x_coords); 
 
 int main(void) {
 	setup();
 	unsigned long input = (unsigned long)pow(2,63);
-	//int_to_bin64(input);
-
 
 	init_tiles();
 
@@ -81,17 +220,9 @@ int main(void) {
 	signal(SIGIO, on_input); 
 	aio_read(&cntrl_blk);
 
-/*
-	bin_num = {1,0,0,0,0,0,0,0,
-		   0,0,0,0,0,0,0,0,
-		   0,0,0,0,0,0,0,0,
-		   0,0,0,0,0,0,0,0,
-		   0,0,0,0,0,0,0,0,
-		   0,0,0,0,0,0,0,0,
-		   0,0,0,0,0,0,0,0,
-		   0,0,0,0,0,0,0,0}
-		   */
-	draw_bitmap(0, 150, &bin_num[0]);
+	draw_test_bitmap(0, 150, &all_white_bitmap[0]);
+	
+//	draw_pawns(&y_coords[0], &x_coords[0], &white_pawns[0]);
 
 	while (running) {
 		pause();	
@@ -119,7 +250,7 @@ void setup_cntrl_blk() {
 	cntrl_blk.aio_sigevent.sigev_signo = SIGIO;
 }
 
-void on_input(int phony) {
+void on_input(int phony) {	// handles user input
 	int c;
 	char *cp = (char *) cntrl_blk.aio_buf;
 
@@ -130,12 +261,12 @@ void on_input(int phony) {
 		if (aio_return(&cntrl_blk) == 1) {
 			c = *cp;
 			switch(c) {
-				case 'Q':
+				case 'Q':		// quit
 					running = 0;
 					break;
 				case 'p':
-					draw_pawn(0,0);
-					//see_color_content(20, 200, 1);
+					// draw_pawns(&y_coords[0], &x_coords[0], &white_pawns_bitmap[0]);
+					draw_all_pieces(y_coords, x_coords);
 					break;
 				default:
 					break;
@@ -143,7 +274,6 @@ void on_input(int phony) {
 		}
 	aio_read(&cntrl_blk);
 	}
-
 }
 
 void init_tiles() {
@@ -153,7 +283,8 @@ void init_tiles() {
 	int curr_y_pos = 0;
 	int curr_x_pos = 0;
 
-	for (i = 0; i < 8; i++) {
+	// put tile coords into 2d arrays
+	for (i = 0; i < 8; i++) { 
 		for (j = 0; j < 8; j++) {
 			board[i][j].y_pos = curr_y_pos;
 			board[i][j].x_pos = curr_x_pos;
@@ -171,64 +302,65 @@ void init_tiles() {
 		}
 	}
 
-	
+	// put tile coords into 1d arrays
+	int index = 0;
+	for (i = 7; i >= 0; i--) {
+		for (j = 0; j < 8; j++) {
+			y_coords[index] = board[i][j].y_pos;
+			x_coords[index] = board[i][j].x_pos;
+			index++;
+		}
+	}
+	refresh();
 }
-void draw_bitmap(int y_pos, int x_pos, int* bitmap) {
+
+// test for drawing from a bitmap
+void draw_pawns(int *y_coords, int *x_coords, int *bitmap) { 
+	int i;
+	int test_arr[64] = {};
+	for (i = 0; i < 64; i++) {
+		if (*bitmap == 1) {
+			draw_pawn(*y_coords, *x_coords);
+			test_arr[i] = 1;	
+		}
+		y_coords++;
+		x_coords++;
+		bitmap++;
+	}
+}
+
+/*
+ * random thought
+ * piece bitmaps could have a leading value that tells what kind of piece it is
+ * might make things more efficient in some places but idk right now
+ */
+
+
+// test for drawing from a bitmap
+void draw_all_pieces(int *y_coords, int *x_coords) 
+{ 
 	int i;
 	int j;
-	int init_x_pos = x_pos;
-	draw_board(y_pos, x_pos, 1, 8);
-	y_pos += 15;
-	x_pos++;
-	for (i = 0; i < 8; i++) {
-		for (j = 0; j < 8; j++) {
-			mvprintw(y_pos, x_pos, "%d", *bitmap);
-			x_pos += 3;
-			bitmap++;
+	int test_arr[64] = {};
+	int *temp_y_coords = y_coords;
+	int *temp_x_coords = x_coords;
+	int *curr_bitmap = *all_piece_bitmaps;
+	//int *curr_bitmap = white_pawns_bitmap;
+
+	for (i = 0; i < 12; i++) 
+	{
+		for (j = 0; j < 64; j++) 
+		{
+			if (*curr_bitmap == 1)
+			{
+				draw_piece(*temp_y_coords, *temp_x_coords, i);
+			}
+			temp_y_coords++;
+			temp_x_coords++;
+			curr_bitmap++;
 		}
-		y_pos -= 2;
-		x_pos = init_x_pos + 1;
+		temp_y_coords = y_coords;
+		temp_x_coords = x_coords;
 	}
 }
 
-void int_to_bin64(unsigned long integer) {
-	int i;
-	int index = 0; // start point in array
-	int power = 63;
-	unsigned long rem; // remainder
-
-	bin_num[index] = integer / (unsigned long)pow(2, power); // msb
-	index++; // index = 1
-	
-	rem = integer % (unsigned long)pow(2, power); 
-	power--;
-
-	while (power >= 0) { // 2^n, n >= 0
-		bin_num[index] = rem / (unsigned long)pow(2, power); // bit 
-		rem = rem % (unsigned long)pow(2, power); // remainder
-		power--;
-		index++;
-	}
-
-}
-
-// take a decimal number and convert it to binary
-void int_to_bin(int integer) {
-	int i;
-	int index = 0; // start point in array
-	int power = floor(log2f(integer)); // power of bit under msb
-	int rem; // remainder
-
-	bin_num[index] = integer / (int)pow(2, power); // msb
-	index++; // index = 1
-	
-	rem = integer % (int)pow(2, power); 
-	power--;
-
-	while (power >= 0) { // 2^n, n >= 0
-		bin_num[index] = rem / pow(2, power); // bit 
-		rem = rem % (int)pow(2, power); // remainder
-		power--;
-		index++;
-	}
-}

@@ -1,9 +1,9 @@
 all: chess
 
-chess: main.o draw_board.o setup.o utility.o pawn.o
-	gcc main.o draw_board.o setup.o utility.o pawn.o -o chess -lncurses -lm
+chess: main.o draw_board.o setup.o utility.o pieces.o bitmap.o
+	gcc main.o draw_board.o setup.o utility.o pieces.o bitmap.o -o chess -lncurses -lm
 
-main.o: main.c setup.h utility.h pawn.h tile.h draw_board.h
+main.o: main.c setup.h utility.h pieces.h tile.h draw_board.h bitmap.h
 	gcc -c main.c
 
 draw_board.o: draw_board.c draw_board.h
@@ -15,8 +15,11 @@ setup.o: setup.c setup.h draw_board.h
 utility.o: utility.c utility.h
 	gcc -c utility.c
 
-pawn.o: pawn.c pawn.h
-	gcc -c pawn.c
+pieces.o: pieces.c pieces.h
+	gcc -c pieces.c
+
+bitmap.o: bitmap.c bitmap.h
+	gcc -c bitmap.c
 
 clean: 
 	rm chess
